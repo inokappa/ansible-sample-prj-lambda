@@ -1,0 +1,54 @@
+- name: Get role arn via module
+  iam_role_arn_get:
+    role_name: '{{ iam_role_name }}'
+  changed_when: false
+  register: iam_role
+  when: not ansible_check_mode
+
+- set_fact:
+    role_arn: '{{ iam_role.arn }}'
+  when: not ansible_check_mode
+
+- name: Get Lambda function Arn via module
+  lambda_arn_get:
+    function_name: '{{ lambda_function_name }}'
+  register: lambda_arn
+  when: not ansible_check_mode
+
+- set_fact:
+    lambda_arn: '{{ lambda_arn.arn }}'
+  when: not ansible_check_mode
+
+- name: Create cloudwatch event
+  cloudwatchevent_rule:
+    name: '{{ lambda_function_name }}'
+    schedule_expression: '{{ cloudwatch_event_schedule_expression }}'
+    description: '{{ lambda_function_name }} cron'
+    role_arn: '{{ role_arn }}'
+    targets:
+      - id: '{{ lambda_function_name }}'
+        arn: '{{ lambda_arn }}'
+  register: event
+  when: not ansible_check_mode
+
+- name: Add lambda permission via module
+  lambda_add_permission:
+    function_name: '{{ lambda_function_name }}'
+    statement_id: '{{ lambda_permission_statement_id }}'
+    action: 'lambda:InvokeFunction'
+    principal: 'events.amazonaws.com'
+    source_arn: '{{ event.rule.arn }}'
+  when: not ansible_check_mode
+
+# - name: Add lambda permission
+#   command: >-
+#     aws lambda add-permission
+#     --function-name {{ lambda_name }}
+#     --statement-id 'cron'
+#     --action 'lambda:InvokeFunction'
+#     --principal events.amazonaws.com
+#     --source-arn {{ event.rule.arn }}
+#   register: add_permission
+#   changed_when: "{{ 'provided already exists' not in add_permission.stderr }}"
+#   failed_when: "{{ add_permission.rc != 0 }} and {{ 'provided already exists' not in add_permission.stderr }}"
+#   when: not ansible_check_mode

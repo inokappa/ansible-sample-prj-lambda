@@ -1,0 +1,13 @@
+- name: Create role
+  iam_role:
+    name: '{{ iam_role_name }}'
+    assume_role_policy_document: "{{ lookup( 'file' , iam_role_policy_file ) }}"
+    state: present
+
+- name: Attatch policy
+  iam_policy:
+    iam_type: role
+    iam_name: '{{ iam_role_name }}'
+    state: present
+    policy_name: '{{ iam_policy_name }}'
+    policy_json: "{{ lookup( 'file', iam_policy_file) }}"

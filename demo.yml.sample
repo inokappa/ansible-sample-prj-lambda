@@ -1,0 +1,18 @@
+- hosts: 127.0.0.1
+  connection: localhost
+  roles:
+    - iam
+    - lambda
+    - cloudwatch_event
+  vars:
+    function_dir: '/path/to/functions/demo'
+    function_handler_name: 'sample.sample_handler'
+    lambda_function_name: 'DemoFunction'
+    iam_role_name: 'Lambda{{ lambda_function_name }}'
+    iam_role_policy_file: '/path/to/policies/demo/iam_role_policy.json'
+    iam_policy_file: '/path/to/policies/demo/iam_policy.json'
+    iam_policy_name: 'Lambda{{ lambda_function_name }}'
+    lambda_function_runtime: 'python2.7'
+    lambda_function_timeout: 60
+    lambda_permission_statement_id: 'cron'
+    cloudwatch_event_schedule_expression: 'cron(* * * * ? *)'

@@ -1,0 +1,35 @@
+- name: Install required pkg
+  pip:
+    requirements: 'requirements.txt'
+    extra_args: '-t site-packages'
+    chdir: '{{ function_dir }}'
+
+- name: Create lambda.zip
+  shell: zip -ur lambda.zip *
+  register: create_lambda_zip
+  changed_when: create_lambda_zip.rc != 12
+  failed_when: create_lambda_zip.rc not in [0, 12]
+  args:
+    chdir: '{{ function_dir }}'
+
+- name: Get role arn via module
+  iam_role_arn_get:
+    role_name: '{{ iam_role_name }}'
+  changed_when: false
+  register: iam_role
+  when: not ansible_check_mode
+
+- set_fact:
+    iam_role_arn: '{{ iam_role.arn }}'
+  when: not ansible_check_mode
+
+- name: Create lambda function
+  lambda:
+    name: '{{ lambda_function_name }}'
+    state: present
+    zip_file: '{{ function_dir }}/lambda.zip'
+    handler: '{{ function_handler_name }}'
+    runtime: '{{ lambda_function_runtime }}'
+    role: '{{ iam_role_arn }}'
+    timeout: '{{ lambda_function_timeout }}'
+  when: not ansible_check_mode
